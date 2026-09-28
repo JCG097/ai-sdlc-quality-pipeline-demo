@@ -136,3 +136,4 @@ module.exports = {
   listarEspacios,
   resumen,
 };
+const variableSinUsar = 1;
