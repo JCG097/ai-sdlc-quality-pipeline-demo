@@ -1,0 +1,57 @@
+name: Claude Dev
+
+# Una historia de usuario (Issue) con la etiqueta claude-dev dispara el desarrollo con TDD.
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  develop:
+    if: github.event.label.name == 'claude-dev'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          # Sin credenciales del GITHUB_TOKEN: los push los hace la GitHub App de Claude,
+          # y así sí disparan el pipeline de calidad.
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Claude desarrolla la historia con TDD
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Implementa la historia de usuario del Issue #${{ github.event.issue.number }} del repositorio ${{ github.repository }}, siguiendo estrictamente CLAUDE.md.
+
+            TÍTULO: ${{ github.event.issue.title }}
+
+            HISTORIA Y CRITERIOS DE ACEPTACIÓN:
+            ${{ github.event.issue.body }}
+
+            Pasos:
+            1. Crea la rama: git checkout -b claude/issue-${{ github.event.issue.number }}
+            2. Rojo: escribe las pruebas de cada criterio en tests/unit/, confirma con npm test que fallan y haz el commit test(#${{ github.event.issue.number }}).
+            3. Verde: implementa el código mínimo, confirma que npm run lint y npm run test:coverage pasan y haz el commit feat(#${{ github.event.issue.number }}).
+            4. Refactor solo si aporta; commit refactor(#${{ github.event.issue.number }}).
+            5. git push -u origin claude/issue-${{ github.event.issue.number }}
+            6. Crea el PR con gh pr create --base main siguiendo el formato de CLAUDE.md.
+            7. Comenta en el Issue #${{ github.event.issue.number }} con gh issue comment, indicando el enlace del PR.
+          claude_args: |
+            --model claude-sonnet-5
+            --max-turns 40
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(npm test),Bash(npm test:*),Bash(npm run lint),Bash(npm run test:coverage),Bash(npx jest:*),Bash(git status),Bash(git diff:*),Bash(git log:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr create:*),Bash(gh issue comment:*)"
