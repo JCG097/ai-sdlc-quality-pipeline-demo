@@ -3,6 +3,7 @@ const {
   normalizarPlaca,
   registrarIngreso,
   registrarSalida,
+  consultarVehiculo,
   listarEspacios,
   resumen,
 } = require('../../app/src/parking');
@@ -93,6 +94,35 @@ describe('registrarSalida', () => {
   test('rechaza la salida de un vehículo que no está', () => {
     const parq = crearParqueadero();
     expect(() => registrarSalida(parq, { placa: 'ZZZ999' })).toThrow('no está en el parqueadero');
+  });
+});
+
+describe('consultarVehiculo', () => {
+  test('devuelve el espacio, tipo, ingreso y valor acumulado', () => {
+    const parq = crearParqueadero();
+    registrarIngreso(parq, { placa: 'ABC123', tipo: 'carro' }, INGRESO);
+    const info = consultarVehiculo(parq, 'ABC123', minutosDespues(61));
+    expect(info).toMatchObject({
+      placa: 'ABC123',
+      espacio: 'C-01',
+      tipo: 'carro',
+      ingreso: INGRESO.toISOString(),
+      valor: 6000,
+    });
+  });
+
+  test('acepta la placa en minúsculas o con guion', () => {
+    const parq = crearParqueadero();
+    registrarIngreso(parq, { placa: 'ABC123', tipo: 'carro' }, INGRESO);
+    const info = consultarVehiculo(parq, 'abc-123', minutosDespues(10));
+    expect(info).toMatchObject({ placa: 'ABC123', espacio: 'C-01' });
+  });
+
+  test('rechaza una placa que no está en el parqueadero', () => {
+    const parq = crearParqueadero();
+    expect(() => consultarVehiculo(parq, 'ZZZ999')).toThrow(
+      'El vehículo ZZZ999 no está en el parqueadero.',
+    );
   });
 });
 

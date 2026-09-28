@@ -43,6 +43,28 @@ describe('API del parqueadero', () => {
     expect(res.status).toBe(404);
   });
 
+  test('GET /api/vehiculos/:placa devuelve el espacio, tipo, ingreso y valor', async () => {
+    await request(app).post('/api/ingresos').send({ placa: 'ABC123', tipo: 'carro' });
+    const res = await request(app).get('/api/vehiculos/ABC123');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ placa: 'ABC123', espacio: 'C-01', tipo: 'carro' });
+    expect(res.body).toHaveProperty('ingreso');
+    expect(res.body).toHaveProperty('valor');
+  });
+
+  test('GET /api/vehiculos/:placa acepta la placa en minúsculas o con guion', async () => {
+    await request(app).post('/api/ingresos').send({ placa: 'ABC123', tipo: 'carro' });
+    const res = await request(app).get('/api/vehiculos/abc-123');
+    expect(res.status).toBe(200);
+    expect(res.body.placa).toBe('ABC123');
+  });
+
+  test('GET /api/vehiculos/:placa responde 404 si el vehículo no está', async () => {
+    const res = await request(app).get('/api/vehiculos/ZZZ999');
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('El vehículo ZZZ999 no está en el parqueadero.');
+  });
+
   test('GET /api/espacios y /api/resumen reflejan la ocupación', async () => {
     await request(app).post('/api/ingresos').send({ placa: 'ABC123', tipo: 'carro' });
     const espacios = await request(app).get('/api/espacios?estado=ocupado');
