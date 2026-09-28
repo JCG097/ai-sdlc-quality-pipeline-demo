@@ -9,6 +9,7 @@ const {
   consultarVehiculo,
   listarEspacios,
   resumen,
+  reporteIngresos,
 } = require('./parking');
 
 function crearApp(opciones) {
@@ -28,6 +29,10 @@ function crearApp(opciones) {
 
   app.get('/api/resumen', (req, res) => {
     res.json(resumen(parqueadero));
+  });
+
+  app.get('/api/reportes/ingresos', (req, res) => {
+    res.json(reporteIngresos(parqueadero));
   });
 
   app.get('/api/vehiculos/:placa', (req, res) => {

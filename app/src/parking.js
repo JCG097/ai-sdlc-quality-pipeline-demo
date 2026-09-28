@@ -25,7 +25,7 @@ function crearParqueadero({ carros = 12, motos = 6 } = {}) {
   for (let i = 1; i <= motos; i++) {
     espacios.push({ codigo: `M-${String(i).padStart(2, '0')}`, tipo: 'moto', placa: null, ingreso: null });
   }
-  return { espacios };
+  return { espacios, recibos: [] };
 }
 
 function normalizarPlaca(placa) {
@@ -93,6 +93,7 @@ function registrarSalida(parqueadero, { placa } = {}, ahora = new Date()) {
   };
   espacio.placa = null;
   espacio.ingreso = null;
+  parqueadero.recibos.push(recibo);
   return recibo;
 }
 
@@ -125,6 +126,19 @@ function resumen(parqueadero) {
   return resultado;
 }
 
+function reporteIngresos(parqueadero) {
+  const porTipo = {};
+  for (const tipo of Object.keys(TARIFAS)) {
+    porTipo[tipo] = { total: 0 };
+  }
+  let total = 0;
+  for (const recibo of parqueadero.recibos) {
+    total += recibo.valor;
+    porTipo[recibo.tipo].total += recibo.valor;
+  }
+  return { total, cantidadSalidas: parqueadero.recibos.length, porTipo };
+}
+
 module.exports = {
   TARIFAS,
   ErrorNegocio,
@@ -135,4 +149,5 @@ module.exports = {
   consultarVehiculo,
   listarEspacios,
   resumen,
+  reporteIngresos,
 };
