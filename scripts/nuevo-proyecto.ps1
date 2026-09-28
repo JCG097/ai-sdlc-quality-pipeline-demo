@@ -68,12 +68,15 @@ Invoke-Gh repo edit $Plantilla --template *> $null
 Invoke-Gh repo create $Repo --public --template $Plantilla --description "Proyecto con pipeline DevSecOps e IA"
 
 # La copia desde la plantilla es asíncrona: se espera a que exista la rama main.
+# Mientras se copia, GitHub responde 404; en este bloque esos errores no detienen el script.
 $listo = $false
-for ($i = 0; $i -lt 30 -and -not $listo; $i++) {
+$ErrorActionPreference = 'Continue'
+for ($i = 0; $i -lt 45 -and -not $listo; $i++) {
   Start-Sleep -Seconds 2
-  & gh.exe api "repos/$Repo/branches/main" --silent *> $null
+  & gh.exe api "repos/$Repo/branches/main" --silent 2>&1 | Out-Null
   $listo = ($LASTEXITCODE -eq 0)
 }
+$ErrorActionPreference = 'Stop'
 if (-not $listo) { throw 'La rama main no apareció a tiempo en el repositorio nuevo.' }
 Ok "Repositorio creado: https://github.com/$Repo"
 
