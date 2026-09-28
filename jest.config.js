@@ -1,6 +1,7 @@
 module.exports = {
   testEnvironment: 'node',
-  roots: ['<rootDir>/tests/unit'],
+  // unit: pruebas del desarrollador. acceptance: pruebas creadas desde los criterios de aceptación.
+  roots: ['<rootDir>/tests/unit', '<rootDir>/tests/acceptance'],
   collectCoverageFrom: ['app/src/**/*.js', '!app/src/server.js'],
   coverageReporters: ['text', 'lcov', 'json-summary'],
   coverageThreshold: {
