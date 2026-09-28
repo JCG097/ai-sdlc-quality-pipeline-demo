@@ -57,3 +57,34 @@ jobs:
         with:
           name: coverage
           path: coverage/
+
+  security:
+    name: Seguridad de dependencias (OSV-Scanner)
+    needs: static-analysis
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.8
+    with:
+      scan-args: |-
+        --lockfile=./package-lock.json
+
+  sonarqube:
+    name: Calidad de código (SonarQube Cloud)
+    needs: unit-tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:coverage
+      - name: Análisis y Quality Gate de SonarQube
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
