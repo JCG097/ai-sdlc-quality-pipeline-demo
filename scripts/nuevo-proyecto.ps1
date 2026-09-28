@@ -108,6 +108,7 @@ Ok 'Ambientes dev y qa'
 Paso "Creando el proyecto $SonarKey en SonarQube Cloud"
 $sonarHeaders = @{ Authorization = "Bearer $sonarToken" }
 $sonarPendiente = $false
+$autoscanPendiente = $false
 try {
   Invoke-RestMethod -Method Post -Uri 'https://sonarcloud.io/api/projects/create' -Headers $sonarHeaders -Body @{
     organization = $SonarOrg; project = $SonarKey; name = $Nombre; visibility = 'public'
@@ -141,13 +142,23 @@ if (-not $sonarPendiente) { try {
   Ok 'Rama principal configurada como main'
 } catch {
   Write-Host '    [AVISO] No se pudo renombrar la rama principal; revísalo en SonarQube Cloud.' -ForegroundColor Yellow
+}
+try {
+  # El análisis lo hace el pipeline; el análisis automático de SonarQube debe quedar apagado.
+  Invoke-RestMethod -Method Post -Uri 'https://sonarcloud.io/api/autoscan/activation' -Headers $sonarHeaders -Body @{
+    projectKey = $SonarKey; enable = 'false'
+  } | Out-Null
+  Ok 'Análisis automático desactivado (el análisis lo hace el pipeline)'
+} catch {
+  $autoscanPendiente = $true
+  Write-Host '    [AVISO] No se pudo desactivar el análisis automático por API.' -ForegroundColor Yellow
 } }
 
 # ---------------------------------------------------------------------------
 Paso 'Configurando sonar-project.properties para el proyecto nuevo'
 $dir = Join-Path $env:TEMP "nuevo-proyecto-$Nombre"
 if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
-Invoke-Gh repo clone $Repo $dir -- --quiet
+Invoke-Gh repo clone $Repo $dir
 $archivo = Join-Path $dir 'sonar-project.properties'
 $contenido = [IO.File]::ReadAllText($archivo)
 $contenido = $contenido -replace '(?m)^sonar\.organization=.*$', "sonar.organization=$SonarOrg"
@@ -217,6 +228,10 @@ Write-Host "`nProyecto listo en $duracion segundos." -ForegroundColor Green
 Write-Host "  Repositorio:  https://github.com/$Repo"
 Write-Host "  Pipeline:     https://github.com/$Repo/actions"
 Write-Host "  SonarQube:    https://sonarcloud.io/project/overview?id=$SonarKey"
+if ($autoscanPendiente) {
+  Write-Host "`nPendiente: en SonarQube Cloud, abre el proyecto $SonarKey > Administration > Analysis Method" -ForegroundColor Yellow
+  Write-Host "  y desactiva Automatic Analysis. Luego vuelve a ejecutar el pipeline de main desde Actions."
+}
 if ($sonarPendiente) {
   Write-Host "`nPendiente: crear el proyecto $SonarKey en SonarQube Cloud (ver el aviso anterior)." -ForegroundColor Yellow
   Write-Host "  Luego vuelve a ejecutar el pipeline de main desde la pestaña Actions."
