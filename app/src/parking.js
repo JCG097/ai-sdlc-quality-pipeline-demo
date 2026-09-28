@@ -2,7 +2,7 @@
 // No depende de Express: son funciones puras fáciles de probar con pruebas unitarias.
 
 // Tarifa en pesos colombianos por hora o fracción.
-const TARIFAS = { carro: 3000, moto: 1500 };
+const TARIFAS = { carro: 3000, moto: 1000 };
 
 // Formato de placas en Colombia: carro ABC123, moto ABC12D.
 const FORMATO_PLACA = {
