@@ -65,7 +65,15 @@ Ok 'Secretos disponibles'
 # ---------------------------------------------------------------------------
 Paso "Creando el repositorio $Repo desde la plantilla"
 Invoke-Gh repo edit $Plantilla --template *> $null
-Invoke-Gh repo create $Repo --public --template $Plantilla --description "Proyecto con pipeline DevSecOps e IA"
+$ErrorActionPreference = 'Continue'
+& gh.exe repo view $Repo --json name 2>&1 | Out-Null
+$repoExiste = ($LASTEXITCODE -eq 0)
+$ErrorActionPreference = 'Stop'
+if ($repoExiste) {
+  Ok 'El repositorio ya existe; se continúa con la configuración'
+} else {
+  Invoke-Gh repo create $Repo --public --template $Plantilla --description "Proyecto con pipeline DevSecOps e IA"
+}
 
 # La copia desde la plantilla es asíncrona: se espera a que exista la rama main.
 # Mientras se copia, GitHub responde 404; en este bloque esos errores no detienen el script.
@@ -105,7 +113,13 @@ try {
   } | Out-Null
   Ok 'Proyecto creado'
 } catch {
-  throw "No se pudo crear el proyecto en SonarQube Cloud: $($_.Exception.Message)"
+  # SonarQube explica el motivo en el cuerpo de la respuesta.
+  $detalle = if ($_.ErrorDetails.Message) { $_.ErrorDetails.Message } else { $_.Exception.Message }
+  if ($detalle -match 'already exists|ya existe|similar key') {
+    Ok 'El proyecto ya existe en SonarQube Cloud'
+  } else {
+    throw "No se pudo crear el proyecto en SonarQube Cloud. Respuesta de SonarQube: $detalle"
+  }
 }
 try {
   # Los proyectos nuevos nacen con la rama principal llamada "master"; se alinea con "main".
@@ -129,11 +143,15 @@ $contenido = $contenido -replace '(?m)^sonar\.projectKey=.*$', "sonar.projectKey
 $contenido = $contenido -replace '(?m)^sonar\.projectName=.*$', "sonar.projectName=$Nombre"
 [IO.File]::WriteAllText($archivo, $contenido, (New-Object Text.UTF8Encoding $false))
 git -C $dir add sonar-project.properties
-git -C $dir commit -m "Configurar SonarQube para $Nombre" --quiet
-git -C $dir push --quiet
-if ($LASTEXITCODE -ne 0) { throw 'No se pudo subir la configuración de SonarQube.' }
+if (git -C $dir status --porcelain) {
+  git -C $dir commit -m "Configurar SonarQube para $Nombre" --quiet
+  git -C $dir push --quiet
+  if ($LASTEXITCODE -ne 0) { throw 'No se pudo subir la configuración de SonarQube.' }
+  Ok 'Configuración subida a main (esto dispara el primer pipeline)'
+} else {
+  Ok 'La configuración de SonarQube ya estaba aplicada'
+}
 Remove-Item $dir -Recurse -Force
-Ok 'Configuración subida a main (esto dispara el primer pipeline)'
 
 # ---------------------------------------------------------------------------
 Paso 'Protegiendo main con los quality gates obligatorios'
@@ -172,9 +190,14 @@ $ruleset = @{
 }
 $rulesetFile = Join-Path $env:TEMP "ruleset-$Nombre.json"
 [IO.File]::WriteAllText($rulesetFile, ($ruleset | ConvertTo-Json -Depth 10), (New-Object Text.UTF8Encoding $false))
-Invoke-Gh api -X POST "repos/$Repo/rulesets" --input $rulesetFile --silent
+$existentes = & gh.exe api "repos/$Repo/rulesets" --jq '.[].name'
+if ($existentes -contains 'Proteger main') {
+  Ok 'El ruleset Proteger main ya existe'
+} else {
+  Invoke-Gh api -X POST "repos/$Repo/rulesets" --input $rulesetFile --silent
+  Ok "Ruleset activo con $($checks.Count) quality gates obligatorios"
+}
 Remove-Item $rulesetFile -Force
-Ok "Ruleset activo con $($checks.Count) quality gates obligatorios"
 
 # ---------------------------------------------------------------------------
 $duracion = [int]((Get-Date) - $inicio).TotalSeconds
