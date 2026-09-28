@@ -57,7 +57,7 @@ describe('registrarIngreso', () => {
   test('rechaza el ingreso cuando no hay cupos', () => {
     const parq = crearParqueadero({ carros: 1, motos: 0 });
     registrarIngreso(parq, { placa: 'AAA111', tipo: 'carro' });
-    expect(() => registrarIngreso(parq, { placa: 'BBB222', tipo: 'carro' })).toThrow('No hay espacios libres');
+    expect(() => registrarIngreso(parq, { placa: 'BBB222', tipo: 'carro' })).toThrow('Parqueadero lleno');
   });
 });
 
