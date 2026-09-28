@@ -26,9 +26,24 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
 
+  acceptance-integrity:
+    name: Integridad de pruebas de aceptación
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Verificar que solo QA modificó las pruebas de aceptación
+        run: node scripts/check-acceptance-integrity.js
+        env:
+          BASE_REF: ${{ github.base_ref }}
+
   static-analysis:
     name: Análisis estático (ESLint)
-    needs: tdd-check
+    needs: [tdd-check, acceptance-integrity]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
