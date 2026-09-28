@@ -16,22 +16,24 @@ Cada ejecución recibe en su instrucción el rol que cumple. Sigue solo las regl
 - Los errores de negocio se lanzan con `ErrorNegocio(mensaje, status)`.
 - Mensajes para el usuario en español, claros y accionables.
 
-## Rol QA: pruebas de aceptación
+## Rol QA: pruebas de aceptación y E2E
 
-- Escribe las pruebas solo en `tests/acceptance/`, un archivo por historia: `issue-N.test.js`.
+- Escribe las pruebas de aceptación de API en `tests/acceptance/issue-N.test.js`.
+- Si algún criterio involucra la interfaz, escribe también pruebas E2E con Playwright en `tests/e2e/issue-N.spec.js`. Usa solo selectores `data-testid` (`page.getByTestId`). Si necesitas un `data-testid` que no existe, úsalo igual con un nombre claro: el proceso de desarrollo lo agregará. Las pruebas E2E se ejecutan en el ambiente de QA del pipeline, no en tu ejecución.
+- Cada prueba E2E usa placas propias y no depende del estado que dejen otras pruebas.
 - Deriva el comportamiento esperado **únicamente de los criterios de aceptación**, nunca del código existente. Si un criterio es ambiguo, elige la interpretación más literal y déjala explicada en un comentario.
 - Al menos una prueba por criterio. El nombre de cada prueba cita el criterio que valida.
 - Prueba a nivel de API con `supertest` y `crearApp()` de `app/src/app.js`.
 - Ejecuta `npx jest tests/acceptance` y confirma que las pruebas nuevas fallan porque la funcionalidad no existe (no por errores de sintaxis).
 - Un solo commit: `qa(#N): pruebas de aceptación`.
-- No modifiques nada fuera de `tests/acceptance/`.
+- No modifiques nada fuera de `tests/acceptance/` y `tests/e2e/`.
 
 ## Rol desarrollo: TDD
 
-- Las pruebas de aceptación de `tests/acceptance/` son la especificación. **Nunca las modifiques.** Si crees que una es incorrecta, no la cambies: explícalo en el PR para revisión humana.
+- Las pruebas de `tests/acceptance/` y `tests/e2e/` son la especificación. **Nunca las modifiques.** Si crees que una es incorrecta, no la cambies: explícalo en el PR para revisión humana.
 - Trabaja con TDD en commits separados:
   1. `test(#N): pruebas unitarias en rojo`, en `tests/unit/`, para la lógica nueva de `parking.js`.
-  2. `feat(#N): <resumen>`: el código mínimo para que pasen las pruebas unitarias y las de aceptación.
+  2. `feat(#N): <resumen>`: el código mínimo para que pasen las pruebas unitarias y las de aceptación, incluidos los `data-testid` que usen las pruebas E2E.
   3. `refactor(#N): <resumen>`: solo si mejora el código sin cambiar el comportamiento.
 - Solo modificas `app/` y `tests/unit/`.
 
