@@ -28,6 +28,7 @@ jobs:
       RUN_ID: ${{ github.event.workflow_run.id }}
       BRANCH: ${{ github.event.workflow_run.head_branch }}
       MAX_INTENTOS: 3
+      CHAT_WEBHOOK_URL: ${{ secrets.CHAT_WEBHOOK_URL }}
     steps:
       - name: Identificar el PR y el número de intento
         id: contexto
@@ -44,6 +45,7 @@ jobs:
         run: |
           RUN_URL="https://github.com/$REPO/actions/runs/$RUN_ID"
           FALLIDOS=$(gh run view "$RUN_ID" --repo "$REPO" --json jobs --jq '.jobs[] | select(.conclusion=="failure") | "- " + .name')
+          gh run view "$RUN_ID" --repo "$REPO" --json jobs --jq '[.jobs[] | select(.conclusion=="failure") | .name] | join(", ")' > /tmp/fallidos.txt
           LOG=$(gh run view "$RUN_ID" --repo "$REPO" --log-failed | sed 's/\x1b\[[0-9;]*m//g' | tail -n 150)
           {
             echo "## Reporte de quality gates: intento ${{ steps.contexto.outputs.intento }} de $MAX_INTENTOS"
@@ -68,6 +70,15 @@ jobs:
           gh pr comment "${{ steps.contexto.outputs.pr }}" --repo "$REPO" --body-file /tmp/reporte-fallo.md
           gh pr edit "${{ steps.contexto.outputs.pr }}" --repo "$REPO" --add-label "claude-attempt-${{ steps.contexto.outputs.intento }}"
 
+      - name: Notificar que la IA está corrigiendo
+        if: steps.contexto.outputs.intento <= 3 && env.CHAT_WEBHOOK_URL != ''
+        run: |
+          PR_URL="https://github.com/$REPO/pull/${{ steps.contexto.outputs.pr }}"
+          TEXT=$(printf '🤖 *La IA está corrigiendo un fallo*\nPR: <%s|#%s>\nIntento %s de %s\nGates fallidos: %s' \
+            "$PR_URL" "${{ steps.contexto.outputs.pr }}" "${{ steps.contexto.outputs.intento }}" "$MAX_INTENTOS" "$(cat /tmp/fallidos.txt)")
+          jq -n --arg text "$TEXT" '{text: $text}' \
+            | curl -fsS -X POST -H 'Content-Type: application/json; charset=UTF-8' --data @- "$CHAT_WEBHOOK_URL"
+
       - name: Escalar a revisión humana
         if: steps.contexto.outputs.intento > 3
         run: |
@@ -77,6 +88,12 @@ jobs:
           gh issue create --repo "$REPO" --label needs-human \
             --title "Revisión humana requerida: PR #$PR" \
             --body "Claude agotó $MAX_INTENTOS intentos de corrección en el PR #$PR. Revisa los reportes publicados en el PR."
+          if [ -n "$CHAT_WEBHOOK_URL" ]; then
+            TEXT=$(printf '🚨 *Revisión humana requerida*\nLa IA agotó %s intentos de corrección en el PR <%s|#%s>.\nGates fallidos: %s' \
+              "$MAX_INTENTOS" "https://github.com/$REPO/pull/$PR" "$PR" "$(cat /tmp/fallidos.txt)")
+            jq -n --arg text "$TEXT" '{text: $text}' \
+              | curl -fsS -X POST -H 'Content-Type: application/json; charset=UTF-8' --data @- "$CHAT_WEBHOOK_URL"
+          fi
 
       - uses: actions/checkout@v5
         if: steps.contexto.outputs.intento <= 3
