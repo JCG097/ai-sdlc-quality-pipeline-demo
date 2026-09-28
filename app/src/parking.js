@@ -56,7 +56,7 @@ function registrarIngreso(parqueadero, { placa, tipo } = {}, ahora = new Date())
   }
   const libre = parqueadero.espacios.find((e) => e.tipo === tipo && !e.placa);
   if (!libre) {
-    throw new ErrorNegocio(`No hay espacios libres para ${tipo}.`, 409);
+    throw new ErrorNegocio(`Parqueadero lleno para ${tipo}.`, 409);
   }
   libre.placa = p;
   libre.ingreso = ahora.toISOString();
