@@ -107,7 +107,7 @@ jobs:
             Lee el reporte ejecutando: cat /tmp/reporte-fallo.md
             Luego encuentra la causa raíz y corrígela siguiendo estrictamente CLAUDE.md.
             - Tienes el rol DESARROLLO de CLAUDE.md: solo puedes modificar app/ y tests/unit/.
-            - Las pruebas de aceptación de tests/acceptance/ son la especificación: nunca las modifiques. Si fallan, corrige el código. Si crees que una prueba de aceptación es incorrecta, no la cambies: explícalo en el comentario del PR para revisión humana.
+            - Las pruebas de tests/acceptance/ y tests/e2e/ son la especificación: nunca las modifiques. Si fallan, corrige el código. Si crees que una prueba de aceptación es incorrecta, no la cambies: explícalo en el comentario del PR para revisión humana.
             - Si falló el gate de TDD, agrega o actualiza las pruebas unitarias que faltan.
             - Nunca bajes umbrales, borres pruebas, uses .skip/.only ni modifiques archivos prohibidos para pasar un gate.
             - Verifica con npm run lint y npm run test:coverage antes de hacer commit.

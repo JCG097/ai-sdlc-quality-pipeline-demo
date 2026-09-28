@@ -50,7 +50,7 @@ jobs:
 
             Pasos:
             1. git checkout -b claude/issue-${{ github.event.issue.number }}
-            2. Escribe tests/acceptance/issue-${{ github.event.issue.number }}.test.js con al menos una prueba por criterio.
+            2. Escribe tests/acceptance/issue-${{ github.event.issue.number }}.test.js con al menos una prueba por criterio. Si algún criterio involucra la interfaz, escribe también tests/e2e/issue-${{ github.event.issue.number }}.spec.js con Playwright.
             3. Ejecuta npx jest tests/acceptance y confirma que las pruebas nuevas fallan porque la funcionalidad no existe.
             4. Ejecuta npm run lint.
             5. Commit: qa(#${{ github.event.issue.number }}): pruebas de aceptación
@@ -58,7 +58,7 @@ jobs:
           claude_args: |
             --model claude-sonnet-5
             --max-turns 25
-            --allowedTools "Read,Glob,Grep,Edit(tests/acceptance/**),Write(tests/acceptance/**),Bash(npx jest:*),Bash(npm run lint),Bash(git status),Bash(git diff:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*)"
+            --allowedTools "Read,Glob,Grep,Edit(tests/acceptance/**),Write(tests/acceptance/**),Edit(tests/e2e/**),Write(tests/e2e/**),Bash(npx jest:*),Bash(npm run lint),Bash(git status),Bash(git diff:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*)"
 
   develop:
     name: Desarrollo - Implementación con TDD
@@ -87,7 +87,7 @@ jobs:
             ROL: DESARROLLO. Sigue la sección "Rol desarrollo" de CLAUDE.md.
 
             Implementa la historia del Issue #${{ github.event.issue.number }} del repositorio ${{ github.repository }}.
-            Ya estás en la rama claude/issue-${{ github.event.issue.number }}. El proceso de QA dejó las pruebas de aceptación en tests/acceptance/issue-${{ github.event.issue.number }}.test.js: son la especificación y no puedes modificarlas.
+            Ya estás en la rama claude/issue-${{ github.event.issue.number }}. El proceso de QA dejó las pruebas de aceptación en tests/acceptance/ (y, si aplica, E2E en tests/e2e/): son la especificación y no puedes modificarlas. Si las E2E usan data-testid que no existen, agrégalos en app/public/index.html.
 
             TÍTULO: ${{ github.event.issue.title }}
 
