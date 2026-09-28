@@ -6,6 +6,7 @@ const {
   consultarVehiculo,
   listarEspacios,
   resumen,
+  reporteIngresos,
 } = require('../../app/src/parking');
 
 // Fecha fija para que las pruebas de cobro sean repetibles.
@@ -144,6 +145,42 @@ describe('listarEspacios y resumen', () => {
     expect(resumen(parq)).toEqual({
       carro: { total: 12, ocupados: 1, libres: 11 },
       moto: { total: 6, ocupados: 0, libres: 6 },
+    });
+  });
+});
+
+describe('reporteIngresos', () => {
+  test('suma el total y la cantidad de salidas registradas', () => {
+    const parq = crearParqueadero();
+    registrarIngreso(parq, { placa: 'ABC123', tipo: 'carro' }, INGRESO);
+    registrarSalida(parq, { placa: 'ABC123' }, minutosDespues(10));
+    registrarIngreso(parq, { placa: 'XYZ12A', tipo: 'moto' }, INGRESO);
+    registrarSalida(parq, { placa: 'XYZ12A' }, minutosDespues(10));
+
+    expect(reporteIngresos(parq)).toMatchObject({ total: 4500, cantidadSalidas: 2 });
+  });
+
+  test('devuelve total 0 y cantidad 0 cuando no hay salidas', () => {
+    const parq = crearParqueadero();
+    expect(reporteIngresos(parq)).toEqual({
+      total: 0,
+      cantidadSalidas: 0,
+      porTipo: { carro: { total: 0 }, moto: { total: 0 } },
+    });
+  });
+
+  test('separa los ingresos por tipo de vehículo', () => {
+    const parq = crearParqueadero();
+    registrarIngreso(parq, { placa: 'ABC123', tipo: 'carro' }, INGRESO);
+    registrarSalida(parq, { placa: 'ABC123' }, minutosDespues(10));
+    registrarIngreso(parq, { placa: 'XYZ789', tipo: 'carro' }, INGRESO);
+    registrarSalida(parq, { placa: 'XYZ789' }, minutosDespues(10));
+    registrarIngreso(parq, { placa: 'ABC12D', tipo: 'moto' }, INGRESO);
+    registrarSalida(parq, { placa: 'ABC12D' }, minutosDespues(10));
+
+    expect(reporteIngresos(parq).porTipo).toEqual({
+      carro: { total: 6000 },
+      moto: { total: 1500 },
     });
   });
 });
