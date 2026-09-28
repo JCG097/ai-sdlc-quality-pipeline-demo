@@ -32,9 +32,10 @@ $SonarKey = "${Owner}_$Nombre"
 function Paso($texto) { Write-Host "`n==> $texto" -ForegroundColor Cyan }
 function Ok($texto) { Write-Host "    [OK] $texto" -ForegroundColor Green }
 
-# Ejecuta un comando de gh y detiene el script si falla.
-function Gh {
-  & gh @args
+# Ejecuta un comando de GitHub CLI y detiene el script si falla.
+# (El nombre no puede ser "gh": PowerShell no distingue mayúsculas y la función se llamaría a sí misma.)
+function Invoke-Gh {
+  & gh.exe @args
   if ($LASTEXITCODE -ne 0) { throw "Falló: gh $($args -join ' ')" }
 }
 
@@ -52,7 +53,7 @@ $inicio = Get-Date
 
 # ---------------------------------------------------------------------------
 Paso "Verificando requisitos"
-& gh auth status *> $null
+& gh.exe auth status *> $null
 if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI no está autenticado. Ejecuta: gh auth login' }
 Ok 'GitHub CLI autenticado'
 
@@ -63,14 +64,14 @@ Ok 'Secretos disponibles'
 
 # ---------------------------------------------------------------------------
 Paso "Creando el repositorio $Repo desde la plantilla"
-Gh repo edit $Plantilla --template *> $null
-Gh repo create $Repo --public --template $Plantilla --description "Proyecto con pipeline DevSecOps e IA"
+Invoke-Gh repo edit $Plantilla --template *> $null
+Invoke-Gh repo create $Repo --public --template $Plantilla --description "Proyecto con pipeline DevSecOps e IA"
 
 # La copia desde la plantilla es asíncrona: se espera a que exista la rama main.
 $listo = $false
 for ($i = 0; $i -lt 30 -and -not $listo; $i++) {
   Start-Sleep -Seconds 2
-  & gh api "repos/$Repo/branches/main" --silent *> $null
+  & gh.exe api "repos/$Repo/branches/main" --silent *> $null
   $listo = ($LASTEXITCODE -eq 0)
 }
 if (-not $listo) { throw 'La rama main no apareció a tiempo en el repositorio nuevo.' }
@@ -78,18 +79,18 @@ Ok "Repositorio creado: https://github.com/$Repo"
 
 # ---------------------------------------------------------------------------
 Paso 'Configurando secretos del repositorio'
-Gh secret set ANTHROPIC_API_KEY --repo $Repo --body $anthropicKey
-Gh secret set SONAR_TOKEN --repo $Repo --body $sonarToken
-Gh secret set CHAT_WEBHOOK_URL --repo $Repo --body $chatWebhook
+Invoke-Gh secret set ANTHROPIC_API_KEY --repo $Repo --body $anthropicKey
+Invoke-Gh secret set SONAR_TOKEN --repo $Repo --body $sonarToken
+Invoke-Gh secret set CHAT_WEBHOOK_URL --repo $Repo --body $chatWebhook
 Ok 'ANTHROPIC_API_KEY, SONAR_TOKEN y CHAT_WEBHOOK_URL'
 
 # ---------------------------------------------------------------------------
 Paso 'Creando etiquetas y ambientes'
-Gh label create claude-dev --repo $Repo --color 0E8A16 --description 'Historia lista para desarrollo con IA' --force
-Gh label create needs-human --repo $Repo --color D93F0B --description 'Requiere revisión humana' --force
+Invoke-Gh label create claude-dev --repo $Repo --color 0E8A16 --description 'Historia lista para desarrollo con IA' --force
+Invoke-Gh label create needs-human --repo $Repo --color D93F0B --description 'Requiere revisión humana' --force
 Ok 'Etiquetas claude-dev y needs-human'
-Gh api -X PUT "repos/$Repo/environments/dev" --silent
-Gh api -X PUT "repos/$Repo/environments/qa" --silent
+Invoke-Gh api -X PUT "repos/$Repo/environments/dev" --silent
+Invoke-Gh api -X PUT "repos/$Repo/environments/qa" --silent
 Ok 'Ambientes dev y qa'
 
 # ---------------------------------------------------------------------------
@@ -117,7 +118,7 @@ try {
 Paso 'Configurando sonar-project.properties para el proyecto nuevo'
 $dir = Join-Path $env:TEMP "nuevo-proyecto-$Nombre"
 if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
-Gh repo clone $Repo $dir -- --quiet
+Invoke-Gh repo clone $Repo $dir -- --quiet
 $archivo = Join-Path $dir 'sonar-project.properties'
 $contenido = [IO.File]::ReadAllText($archivo)
 $contenido = $contenido -replace '(?m)^sonar\.organization=.*$', "sonar.organization=$SonarOrg"
@@ -168,7 +169,7 @@ $ruleset = @{
 }
 $rulesetFile = Join-Path $env:TEMP "ruleset-$Nombre.json"
 [IO.File]::WriteAllText($rulesetFile, ($ruleset | ConvertTo-Json -Depth 10), (New-Object Text.UTF8Encoding $false))
-Gh api -X POST "repos/$Repo/rulesets" --input $rulesetFile --silent
+Invoke-Gh api -X POST "repos/$Repo/rulesets" --input $rulesetFile --silent
 Remove-Item $rulesetFile -Force
 Ok "Ruleset activo con $($checks.Count) quality gates obligatorios"
 
