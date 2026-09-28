@@ -22,6 +22,10 @@ describe('normalizarPlaca', () => {
     expect(normalizarPlaca('abc 123')).toBe('ABC123');
   });
 
+  test('normaliza placas en minúsculas sin separadores', () => {
+     expect(normalizarPlaca('xyz789')).toBe('XYZ789');
+   });
+
   test('devuelve texto vacío si no hay placa', () => {
     expect(normalizarPlaca(undefined)).toBe('');
   });
