@@ -107,21 +107,33 @@ Ok 'Ambientes dev y qa'
 # ---------------------------------------------------------------------------
 Paso "Creando el proyecto $SonarKey en SonarQube Cloud"
 $sonarHeaders = @{ Authorization = "Bearer $sonarToken" }
+$sonarPendiente = $false
 try {
   Invoke-RestMethod -Method Post -Uri 'https://sonarcloud.io/api/projects/create' -Headers $sonarHeaders -Body @{
     organization = $SonarOrg; project = $SonarKey; name = $Nombre; visibility = 'public'
   } | Out-Null
   Ok 'Proyecto creado'
 } catch {
-  # SonarQube explica el motivo en el cuerpo de la respuesta.
-  $detalle = if ($_.ErrorDetails.Message) { $_.ErrorDetails.Message } else { $_.Exception.Message }
+  # SonarQube explica el motivo en el cuerpo de la respuesta; en Windows PowerShell 5 hay que leerlo del stream.
+  $errorSonar = $_
+  $detalle = $errorSonar.ErrorDetails.Message
+  if (-not $detalle -and $errorSonar.Exception.Response) {
+    try {
+      $lector = New-Object IO.StreamReader($errorSonar.Exception.Response.GetResponseStream())
+      $detalle = $lector.ReadToEnd()
+    } catch { }
+  }
+  if (-not $detalle) { $detalle = $errorSonar.Exception.Message }
   if ($detalle -match 'already exists|ya existe|similar key') {
     Ok 'El proyecto ya existe en SonarQube Cloud'
   } else {
-    throw "No se pudo crear el proyecto en SonarQube Cloud. Respuesta de SonarQube: $detalle"
+    $sonarPendiente = $true
+    Write-Host "    [AVISO] SonarQube Cloud rechazó la creación del proyecto." -ForegroundColor Yellow
+    Write-Host "    Respuesta de SonarQube: $detalle" -ForegroundColor Yellow
+    Write-Host "    El script continúa; al final se indica cómo completar este paso." -ForegroundColor Yellow
   }
 }
-try {
+if (-not $sonarPendiente) { try {
   # Los proyectos nuevos nacen con la rama principal llamada "master"; se alinea con "main".
   Invoke-RestMethod -Method Post -Uri 'https://sonarcloud.io/api/project_branches/rename' -Headers $sonarHeaders -Body @{
     project = $SonarKey; name = 'main'
@@ -129,7 +141,7 @@ try {
   Ok 'Rama principal configurada como main'
 } catch {
   Write-Host '    [AVISO] No se pudo renombrar la rama principal; revísalo en SonarQube Cloud.' -ForegroundColor Yellow
-}
+} }
 
 # ---------------------------------------------------------------------------
 Paso 'Configurando sonar-project.properties para el proyecto nuevo'
@@ -205,4 +217,8 @@ Write-Host "`nProyecto listo en $duracion segundos." -ForegroundColor Green
 Write-Host "  Repositorio:  https://github.com/$Repo"
 Write-Host "  Pipeline:     https://github.com/$Repo/actions"
 Write-Host "  SonarQube:    https://sonarcloud.io/project/overview?id=$SonarKey"
+if ($sonarPendiente) {
+  Write-Host "`nPendiente: crear el proyecto $SonarKey en SonarQube Cloud (ver el aviso anterior)." -ForegroundColor Yellow
+  Write-Host "  Luego vuelve a ejecutar el pipeline de main desde la pestaña Actions."
+}
 Write-Host "`nPara empezar: crea un Issue con una historia de usuario y agrégale la etiqueta claude-dev."
