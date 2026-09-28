@@ -1,12 +1,34 @@
 name: Quality Pipeline
+
 on:
   pull_request:
   push:
     branches: [main]
 
+# Si llega un push nuevo al mismo PR, cancela la ejecución anterior.
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  tdd-check:
+    name: TDD verificado
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Verificar que los cambios de código incluyan pruebas
+        run: node scripts/check-tdd.js
+        env:
+          BASE_REF: ${{ github.base_ref }}
+
   static-analysis:
     name: Análisis estático (ESLint)
+    needs: tdd-check
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -16,7 +38,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-    
+
   unit-tests:
     name: Pruebas unitarias y cobertura (Jest)
     needs: static-analysis
@@ -31,7 +53,7 @@ jobs:
       - run: npm run test:coverage
       - name: Publicar reporte de cobertura
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
-          path: coverage/        
+          path: coverage/
