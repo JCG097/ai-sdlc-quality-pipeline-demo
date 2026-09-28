@@ -6,6 +6,7 @@ const {
   crearParqueadero,
   registrarIngreso,
   registrarSalida,
+  consultarVehiculo,
   listarEspacios,
   resumen,
 } = require('./parking');
@@ -27,6 +28,10 @@ function crearApp(opciones) {
 
   app.get('/api/resumen', (req, res) => {
     res.json(resumen(parqueadero));
+  });
+
+  app.get('/api/vehiculos/:placa', (req, res) => {
+    res.json(consultarVehiculo(parqueadero, req.params.placa));
   });
 
   app.post('/api/ingresos', (req, res) => {
