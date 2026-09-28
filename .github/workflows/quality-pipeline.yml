@@ -121,7 +121,9 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
+        with:
+          # El Quality Gate bloquea en los PRs; en main solo se actualiza la línea base.
+          args: -Dsonar.qualitygate.wait=${{ github.event_name == 'pull_request' }}
   # ---------- Build: la imagen se construye una sola vez ----------
   build:
     name: Build, escaneo y registro de imagen
