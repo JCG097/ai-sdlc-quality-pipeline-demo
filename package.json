@@ -4,6 +4,7 @@
   "private": true,
   "description": "Demo de pipeline CI/CD con quality gates: app de administración de parqueadero",
   "scripts": {
+    "lint": "eslint .",
     "start": "node app/src/server.js",
     "dev": "node --watch app/src/server.js"
   },
@@ -12,5 +13,10 @@
   },
   "dependencies": {
     "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0"
   }
 }

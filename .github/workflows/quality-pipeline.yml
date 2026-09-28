@@ -5,12 +5,14 @@ on:
     branches: [main]
 
 jobs:
-  hola:
+  static-analysis:
+    name: Análisis estático (ESLint)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-      - run: node -v
-      - run: echo "El pipeline funciona"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
