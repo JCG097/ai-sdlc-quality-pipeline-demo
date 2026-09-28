@@ -32,7 +32,7 @@ jobs:
 
           if [ "$CONCLUSION" = "success" ]; then
             IMAGE="ghcr.io/${REPO,,}:${SHA}"
-            TEXT=$(printf '✅ *Pipeline aprobado*: %s\nRama: `%s`\nTodos los quality gates pasaron y la versión fue validada en DEV y QA.\nImagen: `%s`\n<%s|Ver ejecución>' \
+            TEXT=$(printf '✅ *Pipeline aprobado*: %s\nRama: `%s`\nTodos los quality gates pasaron y la versión fue validada en DEV y QA.\nImagen: %s\n<%s|Ver ejecución>' \
               "$TITLE" "$BRANCH" "$IMAGE" "$RUN_URL")
           else
             FALLIDOS=$(gh run view "$RUN_ID" --repo "$REPO" --json jobs \
