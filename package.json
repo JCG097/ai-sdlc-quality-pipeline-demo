@@ -1,0 +1,16 @@
+{
+  "name": "ai-sdlc-quality-pipeline-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo de pipeline CI/CD con quality gates: app de administración de parqueadero",
+  "scripts": {
+    "start": "node app/src/server.js",
+    "dev": "node --watch app/src/server.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
