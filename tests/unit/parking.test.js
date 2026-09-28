@@ -17,6 +17,10 @@ describe('normalizarPlaca', () => {
     expect(normalizarPlaca(' abc-123 ')).toBe('ABC123');
   });
 
+  test('normaliza placas con espacios internos', () => {
+    expect(normalizarPlaca('abc 123')).toBe('ABC123');
+  });
+
   test('devuelve texto vacío si no hay placa', () => {
     expect(normalizarPlaca(undefined)).toBe('');
   });
