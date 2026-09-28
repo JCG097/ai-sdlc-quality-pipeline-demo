@@ -63,14 +63,24 @@ function registrarIngreso(parqueadero, { placa, tipo } = {}, ahora = new Date())
   return verEspacio(libre);
 }
 
-function registrarSalida(parqueadero, { placa } = {}, ahora = new Date()) {
+function buscarEspacioOcupado(parqueadero, placa) {
   const p = normalizarPlaca(placa);
   const espacio = parqueadero.espacios.find((e) => e.placa === p);
   if (!espacio) {
     throw new ErrorNegocio(`El vehículo ${p || '(sin placa)'} no está en el parqueadero.`, 404);
   }
-  const minutos = Math.max(1, Math.ceil((ahora - new Date(espacio.ingreso)) / 60000));
+  return { p, espacio };
+}
+
+function calcularCobro(espacio, ingreso, ahora) {
+  const minutos = Math.max(1, Math.ceil((ahora - new Date(ingreso)) / 60000));
   const horasCobradas = Math.ceil(minutos / 60);
+  return { minutos, horasCobradas, valor: horasCobradas * TARIFAS[espacio.tipo] };
+}
+
+function registrarSalida(parqueadero, { placa } = {}, ahora = new Date()) {
+  const { p, espacio } = buscarEspacioOcupado(parqueadero, placa);
+  const { minutos, horasCobradas, valor } = calcularCobro(espacio, espacio.ingreso, ahora);
   const recibo = {
     placa: p,
     espacio: espacio.codigo,
@@ -79,7 +89,7 @@ function registrarSalida(parqueadero, { placa } = {}, ahora = new Date()) {
     salida: ahora.toISOString(),
     minutos,
     horasCobradas,
-    valor: horasCobradas * TARIFAS[espacio.tipo],
+    valor,
   };
   espacio.placa = null;
   espacio.ingreso = null;
@@ -87,20 +97,15 @@ function registrarSalida(parqueadero, { placa } = {}, ahora = new Date()) {
 }
 
 function consultarVehiculo(parqueadero, placa, ahora = new Date()) {
-  const p = normalizarPlaca(placa);
-  const espacio = parqueadero.espacios.find((e) => e.placa === p);
-  if (!espacio) {
-    throw new ErrorNegocio(`El vehículo ${p || '(sin placa)'} no está en el parqueadero.`, 404);
-  }
-  const minutos = Math.max(1, Math.ceil((ahora - new Date(espacio.ingreso)) / 60000));
-  const horasCobradas = Math.ceil(minutos / 60);
+  const { p, espacio } = buscarEspacioOcupado(parqueadero, placa);
+  const { minutos, valor } = calcularCobro(espacio, espacio.ingreso, ahora);
   return {
     placa: p,
     espacio: espacio.codigo,
     tipo: espacio.tipo,
     ingreso: espacio.ingreso,
     minutos,
-    valor: horasCobradas * TARIFAS[espacio.tipo],
+    valor,
   };
 }
 
