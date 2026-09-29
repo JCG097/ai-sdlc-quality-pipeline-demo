@@ -1,8 +1,8 @@
-# Parqueadero Central: pipeline DevSecOps con IA
+# Plantilla DevSecOps con IA
 
 Demo de un ciclo de vida de software asistido por IA: una historia de usuario entra como Issue, la IA crea las pruebas y el código, y un pipeline DevSecOps valida cada cambio con quality gates antes de desplegarlo en ambientes efímeros de DEV y QA. Si algo falla, la IA recibe el reporte, corrige y el ciclo se repite.
 
-El producto de ejemplo, **Parqueadero Central**, es una app ficticia de administración de espacios de parqueo: ingreso y salida de vehículos, validación de placas colombianas, cobro por hora o fracción y reportes.
+Es una **plantilla**: cada proyecto nace con una app vacía (un servidor con un endpoint de salud y una página de bienvenida) y con todo el pipeline, los controles y la IA listos. El producto se construye historia a historia, sea una heladería, una lista de tareas o cualquier otro.
 
 ## Flujo end-to-end
 
@@ -97,22 +97,33 @@ Los mensajes se envían a un webhook de Google Chat (`CHAT_WEBHOOK_URL`). El mis
 
 ## Crear un proyecto nuevo
 
-El script `scripts/nuevo-proyecto.ps1` crea un repositorio desde esta plantilla y lo deja listo en menos de un minuto:
+### Con un clic (autoservicio)
+
+En este repositorio: **Actions → Crear proyecto → Run workflow**.
+
+- **Nombre del proyecto:** minúsculas, números y guiones, por ejemplo `heladeria`.
+- **Historia inicial:** una historia de `historias/` para que la IA empiece a construir el producto, o `ninguna`.
+
+El workflow crea el repositorio desde esta plantilla, configura sus secretos, etiquetas y ambientes `dev` y `qa`, crea el proyecto en SonarQube Cloud (con el análisis automático desactivado), personaliza el README y la página inicial con el nombre del proyecto, crea el ruleset con los 10 gates obligatorios y, si se eligió, envía la historia inicial a la IA. Tarda uno o dos minutos y deja un resumen con los enlaces. Es reanudable: si falla, se ejecuta otra vez con el mismo nombre y continúa.
+
+**Requisitos (una sola vez):** el secreto `PLATFORM_TOKEN` en este repositorio (token personal con permisos para crear y administrar repositorios) y las GitHub Apps de Claude y SonarQube Cloud con acceso a todos los repositorios. Los secretos del proyecto nuevo se copian de los de esta plantilla; nadie tiene que escribirlos.
+
+Para ofrecer más historias iniciales, agrega un archivo en `historias/` (primera línea `# Título`, luego la historia y sus criterios) y súmalo a las opciones de `.github/workflows/crear-proyecto.yml`.
+
+### Desde la consola
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\nuevo-proyecto.ps1 -Nombre mi-proyecto
 ```
 
-Qué hace, en orden: crea el repositorio desde la plantilla, configura los secretos, crea las etiquetas y los ambientes `dev` y `qa`, crea el proyecto en SonarQube Cloud (desactivando su análisis automático), ajusta `sonar-project.properties`, sube esa configuración a `main` (lo que dispara el primer pipeline) y crea el ruleset con los 10 gates obligatorios. Es reanudable: si se interrumpe, al ejecutarlo de nuevo con el mismo nombre continúa donde quedó.
-
-**Requisitos:** GitHub CLI autenticado (`gh auth login`) y Git. Las GitHub Apps de Claude y SonarQube Cloud deben tener acceso a los repositorios nuevos. Los secretos se leen de variables de entorno o se piden de forma oculta; nunca se guardan en archivos.
+Hace lo mismo que el botón desde tu computador, con tu sesión de GitHub CLI; los secretos se leen de variables de entorno o se piden de forma oculta.
 
 ## Uso
 
 ### Desarrollar una historia con IA
 
-1. Crea un Issue con la historia de usuario y sus criterios de aceptación en formato Dado/Cuando/Entonces.
-2. Agrégale la etiqueta `claude-dev`.
+1. En el repositorio del proyecto: **Issues → New issue → Historia de usuario**.
+2. Completa la historia y sus criterios de aceptación (uno por línea, con valores concretos) y crea el Issue. La etiqueta `claude-dev` se asigna sola y arranca el flujo.
 3. Sigue el avance en **Actions → Claude Dev**: primero el job de QA y luego el de Desarrollo.
 4. Revisa el PR que abre la IA: commits separados por fase, criterios cubiertos y resultado de los gates.
 5. Con todos los gates en verde, haz merge. El Issue se cierra automáticamente.

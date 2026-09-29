@@ -16,8 +16,8 @@ on:
         default: ninguna
         options:
           - ninguna
-          - mantenimiento
-          - motos-electricas
+          - heladeria-catalogo
+          - tareas-basicas
 
 concurrency:
   group: crear-proyecto-${{ inputs.nombre }}

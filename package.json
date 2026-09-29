@@ -1,8 +1,8 @@
 {
-  "name": "ai-sdlc-quality-pipeline-demo",
+  "name": "plantilla-devsecops-ia",
   "version": "1.0.0",
   "private": true,
-  "description": "Demo de pipeline CI/CD con quality gates: app de administración de parqueadero",
+  "description": "Plantilla de proyecto con pipeline DevSecOps y desarrollo asistido por IA",
   "scripts": {
     "lint": "eslint .",
     "start": "node app/src/server.js",
