@@ -87,17 +87,13 @@ sed -i -E \
 # La página inicial muestra el nombre del proyecto.
 sed -i "s|>Nuevo proyecto<|>${NOMBRE}<|g" /tmp/nuevo/app/public/index.html
 
-# El README toma el nombre del proyecto y registra de dónde y cuándo nació.
-if ! head -n 1 /tmp/nuevo/README.md | grep -qF "# ${NOMBRE}:"; then
+# El README del proyecto se genera desde el molde de la plantilla (no se usa el README de la plantilla).
+if ! grep -q '<!-- readme-proyecto -->' /tmp/nuevo/README.md; then
   MESES=(enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre)
   FECHA="$(date -u +%-d) de ${MESES[$(( $(date -u +%-m) - 1 ))]} de $(date -u +%Y)"
-  {
-    echo "# ${NOMBRE}: pipeline DevSecOps con IA"
-    echo
-    echo "> Proyecto generado automáticamente desde la plantilla [${PLANTILLA}](https://github.com/${PLANTILLA}) el ${FECHA}, con el autoservicio de proyectos."
-    tail -n +2 /tmp/nuevo/README.md
-  } > /tmp/readme.md
-  mv /tmp/readme.md /tmp/nuevo/README.md
+  sed -e "s|{{NOMBRE}}|${NOMBRE}|g" -e "s|{{REPO}}|${REPO}|g" -e "s|{{PLANTILLA}}|${PLANTILLA}|g" \
+      -e "s|{{FECHA}}|${FECHA}|g" -e "s|{{SONAR_KEY}}|${SONAR_KEY}|g" \
+      .github/plataforma/README-proyecto.md > /tmp/nuevo/README.md
 fi
 
 if git -C /tmp/nuevo diff --quiet; then
