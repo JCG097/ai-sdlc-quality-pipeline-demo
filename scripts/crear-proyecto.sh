@@ -74,8 +74,8 @@ else
   aviso "No se pudo desactivar el análisis automático de SonarQube; hazlo en Administration > Analysis Method."
 fi
 
-# --- Configuración de Sonar en el repo --------------------------------------
-paso "Ajustando sonar-project.properties"
+# --- Configuración de Sonar y README del proyecto ---------------------------
+paso "Ajustando sonar-project.properties y el README"
 rm -rf /tmp/nuevo
 git clone --quiet --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" /tmp/nuevo
 sed -i -E \
@@ -83,13 +83,27 @@ sed -i -E \
   -e "s/^sonar\.projectKey=.*/sonar.projectKey=${SONAR_KEY}/" \
   -e "s/^sonar\.projectName=.*/sonar.projectName=${NOMBRE}/" \
   /tmp/nuevo/sonar-project.properties
+
+# El README toma el nombre del proyecto y registra de dónde y cuándo nació.
+if ! head -n 1 /tmp/nuevo/README.md | grep -qF "# ${NOMBRE}:"; then
+  MESES=(enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre)
+  FECHA="$(date -u +%-d) de ${MESES[$(( $(date -u +%-m) - 1 ))]} de $(date -u +%Y)"
+  {
+    echo "# ${NOMBRE}: pipeline DevSecOps con IA"
+    echo
+    echo "> Proyecto generado automáticamente desde la plantilla [${PLANTILLA}](https://github.com/${PLANTILLA}) el ${FECHA}, con el autoservicio de proyectos."
+    tail -n +2 /tmp/nuevo/README.md
+  } > /tmp/readme.md
+  mv /tmp/readme.md /tmp/nuevo/README.md
+fi
+
 if git -C /tmp/nuevo diff --quiet; then
-  ok "La configuración ya estaba aplicada"
+  ok "La configuración y el README ya estaban aplicados"
 else
   git -C /tmp/nuevo -c user.name="plataforma-bot" -c user.email="plataforma-bot@users.noreply.github.com" \
-    commit --quiet -am "Configurar SonarQube para $NOMBRE"
+    commit --quiet -am "Configurar SonarQube y README para $NOMBRE"
   git -C /tmp/nuevo push --quiet
-  ok "Configuración subida a main (esto dispara el primer pipeline)"
+  ok "Configuración y README subidos a main (esto dispara el primer pipeline)"
 fi
 rm -rf /tmp/nuevo
 
