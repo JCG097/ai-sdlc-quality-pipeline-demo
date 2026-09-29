@@ -32,14 +32,16 @@ jobs:
 
           if [ "$CONCLUSION" = "success" ]; then
             IMAGE="ghcr.io/${REPO,,}:${SHA}"
-            TEXT=$(printf '✅ *Pipeline aprobado*: %s\nRama: `%s`\nTodos los quality gates pasaron y la versión fue validada en DEV y QA.\nImagen: %s\n<%s|Ver ejecución>' \
-              "$TITLE" "$BRANCH" "$IMAGE" "$RUN_URL")
+            TEXT=$(printf '📦 *%s*\n✅ *Pipeline aprobado*: %s\nRama: `%s`\nTodos los quality gates pasaron y la versión fue validada en DEV y QA.\nImagen: %s\n<%s|Ver ejecución>' \
+              "${REPO#*/}" "$TITLE" "$BRANCH" "$IMAGE" "$RUN_URL")
           else
             FALLIDOS=$(gh run view "$RUN_ID" --repo "$REPO" --json jobs \
               --jq '[.jobs[] | select(.conclusion=="failure") | .name] | join(", ")')
-            TEXT=$(printf '❌ *Quality gate fallido*: %s\nRama: `%s`\nGates fallidos: %s\n<%s|Ver ejecución>' \
-              "$TITLE" "$BRANCH" "$FALLIDOS" "$RUN_URL")
+            TEXT=$(printf '📦 *%s*\n❌ *Quality gate fallido*: %s\nRama: `%s`\nGates fallidos: %s\n<%s|Ver ejecución>' \
+              "${REPO#*/}" "$TITLE" "$BRANCH" "$FALLIDOS" "$RUN_URL")
           fi
 
-          jq -n --arg text "$TEXT" '{text: $text}' \
-            | curl -fsS -X POST -H 'Content-Type: application/json; charset=UTF-8' --data @- "$CHAT_WEBHOOK_URL"
+          # Un hilo por repositorio y rama: la secuencia de cada PR queda junta.
+          jq -n --arg text "$TEXT" --arg hilo "${REPO}-${BRANCH}" '{text: $text, thread: {threadKey: $hilo}}' \
+            | curl -fsS -X POST -H 'Content-Type: application/json; charset=UTF-8' --data @- \
+              "${CHAT_WEBHOOK_URL}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"

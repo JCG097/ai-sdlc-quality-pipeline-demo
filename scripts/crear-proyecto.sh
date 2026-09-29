@@ -84,6 +84,9 @@ sed -i -E \
   -e "s/^sonar\.projectName=.*/sonar.projectName=${NOMBRE}/" \
   /tmp/nuevo/sonar-project.properties
 
+# La página inicial muestra el nombre del proyecto.
+sed -i "s|>Nuevo proyecto<|>${NOMBRE}<|g" /tmp/nuevo/app/public/index.html
+
 # El README toma el nombre del proyecto y registra de dónde y cuándo nació.
 if ! head -n 1 /tmp/nuevo/README.md | grep -qF "# ${NOMBRE}:"; then
   MESES=(enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre)
@@ -101,7 +104,7 @@ if git -C /tmp/nuevo diff --quiet; then
   ok "La configuración y el README ya estaban aplicados"
 else
   git -C /tmp/nuevo -c user.name="plataforma-bot" -c user.email="plataforma-bot@users.noreply.github.com" \
-    commit --quiet -am "Configurar SonarQube y README para $NOMBRE"
+    commit --quiet -am "Configurar SonarQube, README y página inicial para $NOMBRE"
   git -C /tmp/nuevo push --quiet
   ok "Configuración y README subidos a main (esto dispara el primer pipeline)"
 fi

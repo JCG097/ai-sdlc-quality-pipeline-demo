@@ -74,10 +74,10 @@ jobs:
         if: steps.contexto.outputs.intento <= 3 && env.CHAT_WEBHOOK_URL != ''
         run: |
           PR_URL="https://github.com/$REPO/pull/${{ steps.contexto.outputs.pr }}"
-          TEXT=$(printf '🤖 *La IA está corrigiendo un fallo*\nPR: <%s|#%s>\nIntento %s de %s\nGates fallidos: %s' \
-            "$PR_URL" "${{ steps.contexto.outputs.pr }}" "${{ steps.contexto.outputs.intento }}" "$MAX_INTENTOS" "$(cat /tmp/fallidos.txt)")
-          jq -n --arg text "$TEXT" '{text: $text}' \
-            | curl -fsS -X POST -H 'Content-Type: application/json; charset=UTF-8' --data @- "$CHAT_WEBHOOK_URL"
+          TEXT=$(printf '📦 *%s*\n🤖 *La IA está corrigiendo un fallo*\nPR: <%s|#%s>\nIntento %s de %s\nGates fallidos: %s' \
+            "${REPO#*/}" "$PR_URL" "${{ steps.contexto.outputs.pr }}" "${{ steps.contexto.outputs.intento }}" "$MAX_INTENTOS" "$(cat /tmp/fallidos.txt)")
+          jq -n --arg text "$TEXT" --arg hilo "${REPO}-${BRANCH}" '{text: $text, thread: {threadKey: $hilo}}' \
+            | curl -fsS -X POST -H 'Content-Type: application/json; charset=UTF-8' --data @- "${CHAT_WEBHOOK_URL}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
 
       - name: Escalar a revisión humana
         if: steps.contexto.outputs.intento > 3
@@ -89,10 +89,10 @@ jobs:
             --title "Revisión humana requerida: PR #$PR" \
             --body "Claude agotó $MAX_INTENTOS intentos de corrección en el PR #$PR. Revisa los reportes publicados en el PR."
           if [ -n "$CHAT_WEBHOOK_URL" ]; then
-            TEXT=$(printf '🚨 *Revisión humana requerida*\nLa IA agotó %s intentos de corrección en el PR <%s|#%s>.\nGates fallidos: %s' \
-              "$MAX_INTENTOS" "https://github.com/$REPO/pull/$PR" "$PR" "$(cat /tmp/fallidos.txt)")
-            jq -n --arg text "$TEXT" '{text: $text}' \
-              | curl -fsS -X POST -H 'Content-Type: application/json; charset=UTF-8' --data @- "$CHAT_WEBHOOK_URL"
+            TEXT=$(printf '📦 *%s*\n🚨 *Revisión humana requerida*\nLa IA agotó %s intentos de corrección en el PR <%s|#%s>.\nGates fallidos: %s' \
+              "${REPO#*/}" "$MAX_INTENTOS" "https://github.com/$REPO/pull/$PR" "$PR" "$(cat /tmp/fallidos.txt)")
+            jq -n --arg text "$TEXT" --arg hilo "${REPO}-${BRANCH}" '{text: $text, thread: {threadKey: $hilo}}' \
+              | curl -fsS -X POST -H 'Content-Type: application/json; charset=UTF-8' --data @- "${CHAT_WEBHOOK_URL}&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
           fi
 
       - uses: actions/checkout@v5

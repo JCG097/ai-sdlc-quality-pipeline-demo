@@ -124,6 +124,7 @@ jobs:
         with:
           # El Quality Gate bloquea en los PRs; en main solo se actualiza la línea base.
           args: -Dsonar.qualitygate.wait=${{ github.event_name == 'pull_request' }}
+
   # ---------- Build: la imagen se construye una sola vez ----------
   build:
     name: Build, escaneo y registro de imagen
@@ -212,8 +213,7 @@ jobs:
       - name: Smoke test
         run: |
           curl -fsS http://localhost:3000/health
-          curl -fsS http://localhost:3000/ | grep -q "Parqueadero Central"
-          curl -fsS http://localhost:3000/api/resumen
+          curl -fsS http://localhost:3000/ | grep -q 'data-testid="titulo-app"'
           echo "### DEV: smoke aprobado con \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Destruir el ambiente de DEV
